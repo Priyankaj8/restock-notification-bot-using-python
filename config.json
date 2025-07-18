@@ -1,0 +1,10 @@
+{
+  "email": {
+    "smtp_server": "smtp.gmail.com",
+    "smtp_port": 587,
+    "username": "priyatestmail1234@gmail.com",
+    "password": "mzte anry jzub ivug"
+  },
+  "check_interval": 1800,
+  "max_retries": 3
+}

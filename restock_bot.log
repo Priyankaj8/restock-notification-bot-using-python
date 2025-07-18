@@ -1,0 +1,36 @@
+2025-07-18 20:26:24,841 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:26:24,847 - __main__ - INFO - Added product 'Test iPhone' with ID 1
+2025-07-18 20:26:51,862 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:27:07,808 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:27:08,481 - __main__ - WARNING - Could not find element with selector '.hero-headline' for Test iPhone
+2025-07-18 20:29:54,038 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:29:54,054 - __main__ - INFO - Added product 'MacBook Pro M1' with ID 2
+2025-07-18 20:30:37,378 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:30:53,448 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:30:56,494 - __main__ - INFO - Product MacBook Pro M1: OUT OF STOCK
+2025-07-18 20:39:07,174 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:39:07,174 - __main__ - INFO - Starting restock monitoring...
+2025-07-18 20:39:07,948 - __main__ - WARNING - Could not find element with selector '.hero-headline' for Test iPhone
+2025-07-18 20:39:10,834 - __main__ - INFO - Product MacBook Pro M1: OUT OF STOCK
+2025-07-18 20:39:10,856 - __main__ - INFO - Checked 2 products. Sleeping for 300 seconds...
+2025-07-18 20:40:34,065 - __main__ - INFO - Monitoring stopped by user
+2025-07-18 20:41:00,717 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:41:00,736 - __main__ - INFO - Added product 'Email Test' with ID 3
+2025-07-18 20:41:15,277 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:41:16,594 - __main__ - ERROR - Network error checking Email Test: 502 Server Error: Bad Gateway for url: https://httpbin.org/html
+2025-07-18 20:42:10,432 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:42:10,451 - __main__ - INFO - Added product 'Google Test' with ID 4
+2025-07-18 20:42:15,761 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:42:16,067 - __main__ - INFO - Product Google Test: IN STOCK
+2025-07-18 20:43:25,410 - __main__ - INFO - Database initialized successfully
+2025-07-18 20:43:25,410 - __main__ - INFO - Starting restock monitoring...
+2025-07-18 20:43:26,044 - __main__ - WARNING - Could not find element with selector '.hero-headline' for Test iPhone
+2025-07-18 20:43:28,982 - __main__ - INFO - Product MacBook Pro M1: OUT OF STOCK
+2025-07-18 20:43:35,136 - __main__ - INFO - Product Email Test: IN STOCK
+2025-07-18 20:43:40,126 - __main__ - INFO - Email sent successfully to 821priyankaj@gmail.com for Email Test
+2025-07-18 20:43:40,156 - __main__ - INFO - Deactivated monitoring for Email Test
+2025-07-18 20:43:40,463 - __main__ - INFO - Product Google Test: IN STOCK
+2025-07-18 20:43:44,936 - __main__ - INFO - Email sent successfully to 821priyankaj@gmail.com for Google Test
+2025-07-18 20:43:44,962 - __main__ - INFO - Deactivated monitoring for Google Test
+2025-07-18 20:43:44,968 - __main__ - INFO - Checked 4 products. Sleeping for 300 seconds...
+2025-07-18 20:44:19,374 - __main__ - INFO - Monitoring stopped by user
