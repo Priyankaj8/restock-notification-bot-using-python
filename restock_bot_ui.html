@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Restock Bot Dashboard</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Restock Bot Dashboard</h1>
+            <p>Monitor your favorite products and get notified when they're back in stock</p>
+        </div>
+
+        <div class="main-content">
+            <!-- Dashboard Overview -->
+            <div class="dashboard-grid">
+                <div class="card">
+                    <h3>📊 System Status</h3>
+                    <div class="status-indicators">
+                        <div class="status-item">
+                            <div class="status-number" id="totalProducts">0</div>
+                            <div class="status-label">Total Products</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-number" id="activeProducts">0</div>
+                            <div class="status-label">Active</div>
+                        </div>
+                        <div class="status-item">
+                            <div class="status-number" id="notificationsSent">0</div>
+                            <div class="status-label">Notifications</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>🎛️ Bot Controls</h3>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button class="btn btn-success" id="startMonitoring">
+                            ▶️ Start Monitoring
+                        </button>
+                        <button class="btn btn-danger" id="stopMonitoring">
+                            ⏹️ Stop Monitoring
+                        </button>
+                        <button class="btn btn-warning" id="testEmail">
+                            📧 Test Email
+                        </button>
+                    </div>
+                    <div style="margin-top: 15px;">
+                        <strong>Status:</strong> <span id="monitoringStatus">Stopped</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Add Product Form -->
+            <div class="form-section">
+                <h3>➕ Add New Product</h3>
+                <form id="addProductForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productName">Product Name</label>
+                            <input type="text" id="productName" name="productName" required 
+                                   placeholder="e.g., iPhone 15 Pro">
+                        </div>
+                        <div class="form-group">
+                            <label for="productEmail">Email for Notifications</label>
+                            <input type="email" id="productEmail" name="productEmail" required 
+                                   placeholder="your-email@gmail.com">
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="productUrl">Product URL</label>
+                        <input type="url" id="productUrl" name="productUrl" required 
+                               placeholder="https://store.example.com/product">
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="productSelector">CSS Selector</label>
+                            <input type="text" id="productSelector" name="productSelector" required 
+                                   placeholder=".stock-status">
+                        </div>
+                        <div class="form-group">
+                            <label for="expectedText">Out of Stock Text</label>
+                            <input type="text" id="expectedText" name="expectedText" required 
+                                   placeholder="Out of Stock">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary">Add Product</button>
+                </form>
+            </div>
+
+            <!-- Products List -->
+            <div class="products-section">
+                <h3>📦 Monitored Products</h3>
+                <div id="productsList">
+                    <!-- Products will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Logs Section -->
+            <div class="logs-section">
+                <h3 style="color: #3498db; margin-bottom: 15px;">📋 Recent Activity</h3>
+                <div id="logsList">
+                    <div class="log-entry">
+                        <span class="log-time">2024-01-15 14:30:25</span> - Bot initialized successfully
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-time">2024-01-15 14:30:26</span> - Database connection established
+                    </div>
+                    <div class="log-entry">
+                        <span class="log-time">2024-01-15 14:30:27</span> - Ready to monitor products
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Product Details -->
+    <div id="productModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modalTitle">Product Details</h2>
+            <div id="modalContent">
+                <!-- Product details will be shown here -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>
