@@ -98,17 +98,22 @@ class DatabaseManager:
             
             conn.commit()
             logger.info("Database initialized successfully")
-    
-    def add_product(self, product: Product) -> int:
-        """Add a new product to monitor"""
-        with self.get_connection() as conn:
-            cursor = conn.execute('''
-                INSERT INTO products (name, url, selector, expected_text, email, is_active)
-                VALUES (?, ?, ?, ?, ?, ?)
-            ''', (product.name, product.url, product.selector, 
-                  product.expected_text, product.email, product.is_active))
-            conn.commit()
-            return cursor.lastrowid
+
+    def add_product(self, product: Product):
+        try:
+            print(f"DEBUG: About to insert: {product.name}, {product.url}, {product.selector}, {product.expected_text}, {product.email}")
+            with self.get_connection() as conn:
+                cursor = conn.execute("""
+                    INSERT INTO products (name, url, selector, expected_text, email)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (product.name, product.url, product.selector, product.expected_text, product.email))
+                print(f"DEBUG: Insert completed, row ID: {cursor.lastrowid}")
+                conn.commit()
+                print(f"DEBUG: Transaction committed")
+                return cursor.lastrowid  # Return the new product ID
+        except Exception as e:
+            print(f"DEBUG: Database error: {str(e)}")
+            raise e
     
     def get_active_products(self) -> List[Product]:
         """Get all active products for monitoring"""

@@ -1,266 +1,423 @@
-// Sample data - in a real implementation, this would come from your Python backend
-let products = [
-    {
-        id: 1,
-        name: "MacBook Pro M1",
-        url: "https://www.amazon.in/Apple-MacBook-Chip-13-inch-512GB/dp/B08N5WRWNW",
-        selector: ".a-color-price",
-        expectedText: "Currently unavailable",
-        email: "user@example.com",
-        isActive: true,
-        lastChecked: "2024-01-15 14:25:00",
-        createdAt: "2024-01-15 10:00:00"
-    },
-    {
-        id: 2,
-        name: "Google Test",
-        url: "https://www.google.com",
-        selector: "title",
-        expectedText: "NonExistentText",
-        email: "user@example.com",
-        isActive: false,
-        lastChecked: "2024-01-15 14:20:00",
-        createdAt: "2024-01-15 12:00:00"
+// Dashboard JavaScript functionality
+class RestockDashboard {
+    constructor() {
+        this.init();
+        this.loadData();
+        this.setupEventListeners();
+        // Auto-refresh every 30 seconds
+        this.autoRefreshInterval = setInterval(() => {
+            this.loadData();
+        }, 30000);
     }
-];
 
-let monitoringActive = false;
-let monitoringInterval;
+    init() {
+        console.log('Restock Dashboard initialized');
+    }
 
-// Initialize the dashboard
-document.addEventListener('DOMContentLoaded', function() {
-    loadProducts();
-    updateStats();
-    setupEventListeners();
-});
+    setupEventListeners() {
+        // Add product form
+        document.getElementById('addProductForm').addEventListener('submit', (e) => {
+            this.handleAddProduct(e);
+        });
 
-function setupEventListeners() {
-    // Add product form
-    document.getElementById('addProductForm').addEventListener('submit', function(e) {
-        e.preventDefault();
-        addProduct();
-    });
+        // Control buttons
+        document.getElementById('startMonitoring').addEventListener('click', () => {
+            this.startMonitoring();
+        });
 
-    // Bot controls
-    document.getElementById('startMonitoring').addEventListener('click', startMonitoring);
-    document.getElementById('stopMonitoring').addEventListener('click', stopMonitoring);
-    document.getElementById('testEmail').addEventListener('click', testEmail);
+        document.getElementById('stopMonitoring').addEventListener('click', () => {
+            this.stopMonitoring();
+        });
 
-    // Modal
-    document.querySelector('.close').addEventListener('click', closeModal);
-    window.addEventListener('click', function(e) {
-        if (e.target === document.getElementById('productModal')) {
-            closeModal();
+        document.getElementById('testEmail').addEventListener('click', () => {
+            this.testEmail();
+        });
+
+        // Close modal
+        document.querySelector('.close').addEventListener('click', () => {
+            this.closeModal();
+        });
+
+        // Close modal when clicking outside
+        window.addEventListener('click', (e) => {
+            const modal = document.getElementById('productModal');
+            if (e.target === modal) {
+                this.closeModal();
+            }
+        });
+    }
+
+    async loadData() {
+        try {
+            await Promise.all([
+                this.loadStatus(),
+                this.loadProducts(),
+                this.loadLogs()
+            ]);
+        } catch (error) {
+            console.error('Error loading data:', error);
+            this.showNotification('Error loading dashboard data', 'error');
         }
-    });
-}
-
-function loadProducts() {
-    const productsList = document.getElementById('productsList');
-    productsList.innerHTML = '';
-
-    if (products.length === 0) {
-        productsList.innerHTML = '<p style="text-align: center; color: #7f8c8d; padding: 20px;">No products added yet. Add your first product above!</p>';
-        return;
     }
 
-    products.forEach(product => {
-        const productDiv = document.createElement('div');
-        productDiv.className = `product-item ${product.isActive ? '' : 'inactive'}`;
+    async loadStatus() {
+        try {
+            const response = await fetch('/api/status');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            
+            document.getElementById('totalProducts').textContent = data.total_products;
+            document.getElementById('activeProducts').textContent = data.active_products;
+            document.getElementById('notificationsSent').textContent = data.notifications_sent;
+            document.getElementById('monitoringStatus').textContent = data.monitoring_status;
+            
+            // Update monitoring status color
+            const statusElement = document.getElementById('monitoringStatus');
+            statusElement.className = data.monitoring_status === 'Running' ? 'status-running' : 'status-stopped';
+            
+        } catch (error) {
+            console.error('Error loading status:', error);
+        }
+    }
+
+    async loadProducts() {
+        try {
+            const response = await fetch('/api/products');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const products = await response.json();
+            this.renderProducts(products);
+        } catch (error) {
+            console.error('Error loading products:', error);
+            document.getElementById('productsList').innerHTML = '<p>Error loading products</p>';
+        }
+    }
+
+    renderProducts(products) {
+        const container = document.getElementById('productsList');
         
-        productDiv.innerHTML = `
-            <div class="product-header">
-                <div class="product-name">${product.name}</div>
-                <div class="product-status ${product.isActive ? 'status-active' : 'status-inactive'}">
-                    ${product.isActive ? '🟢 Active' : '🔴 Inactive'}
+        if (products.length === 0) {
+            container.innerHTML = '<p class="no-products">No products added yet. Add your first product above!</p>';
+            return;
+        }
+
+        const productsHtml = products.map(product => `
+            <div class="product-item ${product.is_active ? 'active' : 'inactive'}">
+                <div class="product-header">
+                    <h4>${this.escapeHtml(product.name)}</h4>
+                    <div class="product-status">
+                        ${product.is_active ? '🟢 Active' : '🔴 Inactive'}
+                    </div>
+                </div>
+                <div class="product-details">
+                    <p><strong>URL:</strong> <a href="${product.url}" target="_blank" rel="noopener">${this.truncateUrl(product.url)}</a></p>
+                    <p><strong>Email:</strong> ${this.escapeHtml(product.email)}</p>
+                    <p><strong>Selector:</strong> <code>${this.escapeHtml(product.selector)}</code></p>
+                    <p><strong>Expected Text:</strong> "${this.escapeHtml(product.expected_text)}"</p>
+                    <p><strong>Last Checked:</strong> ${product.last_checked || 'Never'}</p>
+                    <p><strong>Created:</strong> ${this.formatDate(product.created_at)}</p>
+                </div>
+                <div class="product-actions">
+                    <button class="btn btn-info btn-sm" onclick="dashboard.testProduct(${product.id})">
+                        🧪 Test
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="dashboard.viewProduct(${product.id})">
+                        👁️ Details
+                    </button>
+                    ${product.is_active ? `
+                        <button class="btn btn-danger btn-sm" onclick="dashboard.deactivateProduct(${product.id})">
+                            ⏹️ Deactivate
+                        </button>
+                    ` : ''}
                 </div>
             </div>
-            <div class="product-details">
-                <div><strong>URL:</strong> ${product.url}</div>
-                <div><strong>Email:</strong> ${product.email}</div>
-                <div><strong>Last Checked:</strong> ${product.lastChecked || 'Never'}</div>
-            </div>
-            <div class="product-actions">
-                <button class="btn btn-primary btn-sm" onclick="testProduct(${product.id})">
-                    🧪 Test
-                </button>
-                <button class="btn btn-warning btn-sm" onclick="viewProduct(${product.id})">
-                    👁️ View
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="deleteProduct(${product.id})">
-                    🗑️ Delete
-                </button>
-            </div>
-        `;
-        
-        productsList.appendChild(productDiv);
-    });
-}
+        `).join('');
 
-function updateStats() {
-    const totalProducts = products.length;
-    const activeProducts = products.filter(p => p.isActive).length;
-    const notificationsSent = products.filter(p => !p.isActive).length; // Simplified
-
-    document.getElementById('totalProducts').textContent = totalProducts;
-    document.getElementById('activeProducts').textContent = activeProducts;
-    document.getElementById('notificationsSent').textContent = notificationsSent;
-}
-
-function addProduct() {
-    const form = document.getElementById('addProductForm');
-    const formData = new FormData(form);
-    
-    const newProduct = {
-        id: Date.now(),
-        name: formData.get('productName'),
-        url: formData.get('productUrl'),
-        selector: formData.get('productSelector'),
-        expectedText: formData.get('expectedText'),
-        email: formData.get('productEmail'),
-        isActive: true,
-        lastChecked: null,
-        createdAt: new Date().toISOString().slice(0, 19).replace('T', ' ')
-    };
-
-    products.push(newProduct);
-    loadProducts();
-    updateStats();
-    form.reset();
-    
-    showNotification('Product added successfully!', 'success');
-}
-
-function testProduct(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    showNotification(`Testing ${product.name}...`, 'info');
-    
-    // Simulate testing
-    setTimeout(() => {
-        const isInStock = Math.random() > 0.5;
-        const message = isInStock ? 
-            `${product.name} is IN STOCK! 🎉` : 
-            `${product.name} is out of stock.`;
-        
-        showNotification(message, isInStock ? 'success' : 'info');
-        addLogEntry(`Tested ${product.name}: ${isInStock ? 'IN STOCK' : 'OUT OF STOCK'}`);
-        
-        // Update last checked
-        product.lastChecked = new Date().toISOString().slice(0, 19).replace('T', ' ');
-        loadProducts();
-    }, 2000);
-}
-
-function viewProduct(productId) {
-    const product = products.find(p => p.id === productId);
-    if (!product) return;
-
-    document.getElementById('modalTitle').textContent = product.name;
-    document.getElementById('modalContent').innerHTML = `
-        <div style="margin-bottom: 15px;"><strong>URL:</strong> <a href="${product.url}" target="_blank">${product.url}</a></div>
-        <div style="margin-bottom: 15px;"><strong>CSS Selector:</strong> <code>${product.selector}</code></div>
-        <div style="margin-bottom: 15px;"><strong>Expected Text:</strong> "${product.expectedText}"</div>
-        <div style="margin-bottom: 15px;"><strong>Email:</strong> ${product.email}</div>
-        <div style="margin-bottom: 15px;"><strong>Status:</strong> ${product.isActive ? '🟢 Active' : '🔴 Inactive'}</div>
-        <div style="margin-bottom: 15px;"><strong>Created:</strong> ${product.createdAt}</div>
-        <div style="margin-bottom: 15px;"><strong>Last Checked:</strong> ${product.lastChecked || 'Never'}</div>
-    `;
-    
-    document.getElementById('productModal').style.display = 'block';
-}
-
-function deleteProduct(productId) {
-    if (confirm('Are you sure you want to delete this product?')) {
-        products = products.filter(p => p.id !== productId);
-        loadProducts();
-        updateStats();
-        showNotification('Product deleted successfully!', 'success');
+        container.innerHTML = productsHtml;
     }
-}
 
-function startMonitoring() {
-    if (monitoringActive) return;
-    
-    monitoringActive = true;
-    document.getElementById('monitoringStatus').textContent = '🟢 Running';
-    document.getElementById('monitoringStatus').style.color = '#27ae60';
-    
-    showNotification('Monitoring started!', 'success');
-    addLogEntry('Bot monitoring started');
-    
-    // Simulate monitoring
-    monitoringInterval = setInterval(() => {
-        const activeProducts = products.filter(p => p.isActive);
-        if (activeProducts.length > 0) {
-            const product = activeProducts[Math.floor(Math.random() * activeProducts.length)];
-            addLogEntry(`Checked ${product.name}: OUT OF STOCK`);
-            product.lastChecked = new Date().toISOString().slice(0, 19).replace('T', ' ');
-            loadProducts();
+    async loadLogs() {
+        try {
+            const response = await fetch('/api/logs');
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            const data = await response.json();
+            this.renderLogs(data.logs);
+        } catch (error) {
+            console.error('Error loading logs:', error);
         }
-    }, 10000); // Check every 10 seconds for demo
-}
-
-function stopMonitoring() {
-    if (!monitoringActive) return;
-    
-    monitoringActive = false;
-    document.getElementById('monitoringStatus').textContent = '🔴 Stopped';
-    document.getElementById('monitoringStatus').style.color = '#e74c3c';
-    
-    if (monitoringInterval) {
-        clearInterval(monitoringInterval);
     }
-    
-    showNotification('Monitoring stopped!', 'info');
-    addLogEntry('Bot monitoring stopped');
-}
 
-function testEmail() {
-    showNotification('Sending test email...', 'info');
-    
-    // Simulate email test
-    setTimeout(() => {
-        showNotification('Test email sent successfully! 📧', 'success');
-        addLogEntry('Test email sent successfully');
-    }, 2000);
-}
+    renderLogs(logs) {
+        const container = document.getElementById('logsList');
+        
+        if (!logs || logs.length === 0) {
+            container.innerHTML = '<div class="log-entry">No logs available</div>';
+            return;
+        }
 
-function closeModal() {
-    document.getElementById('productModal').style.display = 'none';
-}
+        const logsHtml = logs.slice(-20).reverse().map(log => {
+            const logClass = this.getLogClass(log);
+            return `<div class="log-entry ${logClass}">${this.escapeHtml(log)}</div>`;
+        }).join('');
 
-function showNotification(message, type) {
-    const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
-    notification.textContent = message;
-    
-    document.body.appendChild(notification);
-    
-    setTimeout(() => {
-        notification.remove();
-    }, 4000);
-}
+        container.innerHTML = logsHtml;
+    }
 
-function addLogEntry(message) {
-    const logsList = document.getElementById('logsList');
-    const logEntry = document.createElement('div');
-    logEntry.className = 'log-entry';
-    
-    const now = new Date().toISOString().slice(0, 19).replace('T', ' ');
-    logEntry.innerHTML = `<span class="log-time">${now}</span> - ${message}`;
-    
-    logsList.insertBefore(logEntry, logsList.firstChild);
-    
-    // Keep only last 20 entries
-    while (logsList.children.length > 20) {
-        logsList.removeChild(logsList.lastChild);
+    getLogClass(log) {
+        if (log.includes('ERROR')) return 'log-error';
+        if (log.includes('WARNING')) return 'log-warning';
+        if (log.includes('INFO')) return 'log-info';
+        return '';
+    }
+
+    async handleAddProduct(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const formData = new FormData(form);
+        
+        const productData = {
+            name: formData.get('productName').trim(),
+            url: formData.get('productUrl').trim(),
+            selector: formData.get('productSelector').trim(),
+            expected_text: formData.get('expectedText').trim(),
+            email: formData.get('productEmail').trim()
+        };
+
+        // Validate required fields
+        if (!productData.name || !productData.url || !productData.selector || 
+            !productData.expected_text || !productData.email) {
+            this.showNotification('Please fill in all fields', 'error');
+            return;
+        }
+
+        // Validate URL format
+        try {
+            new URL(productData.url);
+        } catch {
+            this.showNotification('Please enter a valid URL', 'error');
+            return;
+        }
+
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(productData.email)) {
+            this.showNotification('Please enter a valid email address', 'error');
+            return;
+        }
+
+        try {
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.textContent;
+            submitButton.textContent = 'Adding...';
+            submitButton.disabled = true;
+
+            const response = await fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(productData)
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.showNotification(result.message, 'success');
+                form.reset();
+                // Reload data to show the new product
+                await this.loadData();
+            } else {
+                this.showNotification(result.detail || 'Error adding product', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error adding product:', error);
+            this.showNotification('Network error. Please try again.', 'error');
+        } finally {
+            const submitButton = form.querySelector('button[type="submit"]');
+            submitButton.textContent = 'Add Product';
+            submitButton.disabled = false;
+        }
+    }
+
+    async testProduct(productId) {
+        try {
+            this.showNotification('Testing product...', 'info');
+            
+            const response = await fetch(`/api/products/${productId}/test`, {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                const status = result.in_stock ? 'IN STOCK ✅' : 'OUT OF STOCK ❌';
+                this.showNotification(`${result.product_name}: ${status}`, 'info');
+                // Reload data to update last checked time
+                await this.loadData();
+            } else {
+                this.showNotification(result.detail || 'Error testing product', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error testing product:', error);
+            this.showNotification('Error testing product', 'error');
+        }
+    }
+
+    async deactivateProduct(productId) {
+        if (!confirm('Are you sure you want to deactivate this product?')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/products/${productId}`, {
+                method: 'DELETE'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.showNotification(result.message, 'success');
+                await this.loadData();
+            } else {
+                this.showNotification(result.detail || 'Error deactivating product', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error deactivating product:', error);
+            this.showNotification('Error deactivating product', 'error');
+        }
+    }
+
+    async startMonitoring() {
+        try {
+            const response = await fetch('/api/monitoring/start', {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            this.showNotification(result.message, 'success');
+            await this.loadStatus();
+
+        } catch (error) {
+            console.error('Error starting monitoring:', error);
+            this.showNotification('Error starting monitoring', 'error');
+        }
+    }
+
+    async stopMonitoring() {
+        try {
+            const response = await fetch('/api/monitoring/stop', {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+            this.showNotification(result.message, 'info');
+            await this.loadStatus();
+
+        } catch (error) {
+            console.error('Error stopping monitoring:', error);
+            this.showNotification('Error stopping monitoring', 'error');
+        }
+    }
+
+    async testEmail() {
+        try {
+            this.showNotification('Sending test email...', 'info');
+            
+            const response = await fetch('/api/test-email', {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (response.ok) {
+                this.showNotification(result.message, 'success');
+            } else {
+                this.showNotification(result.detail || 'Email test failed', 'error');
+            }
+
+        } catch (error) {
+            console.error('Error testing email:', error);
+            this.showNotification('Error testing email', 'error');
+        }
+    }
+
+    viewProduct(productId) {
+        // This would show product details in a modal
+        console.log('View product:', productId);
+        // For now, just show a simple alert
+        this.showNotification('Product details feature coming soon!', 'info');
+    }
+
+    showNotification(message, type = 'info') {
+        // Create notification element
+        const notification = document.createElement('div');
+        notification.className = `notification notification-${type}`;
+        notification.innerHTML = `
+            <span>${this.escapeHtml(message)}</span>
+            <button class="notification-close" onclick="this.parentElement.remove()">&times;</button>
+        `;
+
+        // Add to page
+        document.body.appendChild(notification);
+
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 5000);
+    }
+
+    closeModal() {
+        document.getElementById('productModal').style.display = 'none';
+    }
+
+    // Utility functions
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    truncateUrl(url, maxLength = 50) {
+        return url.length > maxLength ? url.substring(0, maxLength) + '...' : url;
+    }
+
+    formatDate(dateString) {
+        if (!dateString) return 'Unknown';
+        try {
+            return new Date(dateString).toLocaleString();
+        } catch {
+            return dateString;
+        }
+    }
+
+    // Cleanup
+    destroy() {
+        if (this.autoRefreshInterval) {
+            clearInterval(this.autoRefreshInterval);
+        }
     }
 }
 
-// Initialize with some sample log entries
-setTimeout(() => {
-    addLogEntry('Dashboard loaded successfully');
-    addLogEntry('Ready to monitor products');
-}, 1000);
+// Initialize dashboard when page loads
+let dashboard;
+document.addEventListener('DOMContentLoaded', () => {
+    dashboard = new RestockDashboard();
+});
+
+// Cleanup on page unload
+window.addEventListener('beforeunload', () => {
+    if (dashboard) {
+        dashboard.destroy();
+    }
+});
